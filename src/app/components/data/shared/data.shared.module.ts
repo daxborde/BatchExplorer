@@ -9,8 +9,10 @@ import { FileGroupSasComponent } from "./file-group-sas";
 import { FileGroupsPickerComponent } from "./file-groups-picker";
 import { FileOrDirectoryPickerModule } from "./file-or-directory-picker";
 import { JobIdComponent } from "./job-id/job-id.component";
+import { SingleAppPackagePickerComponent } from "./single-app-package-picker";
 
 const components = [
+    SingleAppPackagePickerComponent,
     CloudFilePickerComponent,
     CloudFilePickerDialogComponent,
     FileGroupSasComponent,
