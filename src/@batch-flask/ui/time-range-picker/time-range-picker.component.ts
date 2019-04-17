@@ -1,14 +1,14 @@
 import {
-    ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, OnDestroy, forwardRef,
+    ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, Input, OnDestroy, forwardRef,
 } from "@angular/core";
 import { ControlValueAccessor, FormBuilder, FormGroup, NG_VALUE_ACCESSOR, ValidationErrors } from "@angular/forms";
 import { I18nService, TimeZoneService } from "@batch-flask/core";
 import { DateUtils } from "@batch-flask/utils";
 import { DateTime, Duration } from "luxon";
 import { Subject } from "rxjs";
+import { takeUntil } from "rxjs/operators";
 import { QuickRange, QuickRanges, TimeRange, TimeRangeAttributes } from "./time-range.model";
 
-import { takeUntil } from "rxjs/operators";
 import "./time-range-picker.scss";
 
 let idCounter = 0;
@@ -24,7 +24,7 @@ let idCounter = 0;
 export class TimeRangePickerComponent implements ControlValueAccessor, OnDestroy {
     @HostBinding("attr.id") public id = `bl-timerange-picker-${idCounter++}`;
 
-    public quickRanges: QuickRange[] = [
+    @Input() public quickRanges: QuickRange[] = [
         QuickRanges.lastHour,
         QuickRanges.last24h,
         QuickRanges.lastWeek,
@@ -32,6 +32,7 @@ export class TimeRangePickerComponent implements ControlValueAccessor, OnDestroy
         QuickRanges.last90Days,
     ];
 
+    @Input() public showLabel = true;
     public customRange: FormGroup;
     public current: QuickRange | TimeRangeAttributes | null = null;
     public currentLabel: string;
@@ -139,11 +140,14 @@ export class TimeRangePickerComponent implements ControlValueAccessor, OnDestroy
         return `${startStr} - ${endStr}`;
     }
 
-    private _prettyPoint(date: Date | Duration | undefined | null) {
+    private _prettyPoint(date: Date | Duration | (() => Date) | undefined | null) {
         if (!date) { return "Now"; }
 
         if (date instanceof Duration) {
             return DateTime.local().plus(date).toRelative();
+        }
+        if (date instanceof Function) {
+            date = date();
         }
 
         return DateUtils.prettyDate(DateTime.fromJSDate(date).setZone(this._currentTimezone));

@@ -5,25 +5,7 @@ import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { BrowserModule } from "@angular/platform-browser";
 import { NoopAnimationsModule } from "@angular/platform-browser/animations";
 import { PreloadAllModules, RouterModule } from "@angular/router";
-
-// application router
-import { routes } from "./app.routes";
-
-// components
-import { AppComponent } from "app/app.component";
-
-// extenal modules
-import { BaseModule } from "@batch-flask/ui";
-import { AccountModule } from "app/components/account/account.module";
-import { FileModule } from "app/components/file/file.module";
-import { SettingsModule } from "app/components/settings";
-
-// unhandled application error handler
-import { BatchExplorerErrorHandler } from "app/error-handler";
-
-// services
 import {
-    DEFAULT_USER_CONFIGURATION,
     LocaleService,
     MaterialModule,
     TranslationsLoaderService,
@@ -31,13 +13,19 @@ import {
     USER_SERVICE,
 } from "@batch-flask/core";
 import { ElectronRendererModule } from "@batch-flask/electron";
+import { BaseModule, KeyBindingsModule } from "@batch-flask/ui";
+import { AppComponent } from "app/app.component";
+import { AccountModule } from "app/components/account/account.module";
+import { FileModule } from "app/components/file/file.module";
 import { LayoutModule } from "app/components/layout";
 import { MiscModule } from "app/components/misc";
+import { SettingsModule } from "app/components/settings";
+import { BatchExplorerErrorHandler } from "app/error-handler";
+import { routes } from "./app.routes";
 import {
     AdalService,
     AppLocaleService,
     AppTranslationsLoaderService,
-    DEFAULT_BE_USER_CONFIGURATION,
     RendererConfigurationStore,
 } from "./services";
 import { RendererTelemetryModule } from "./services/telemetry";
@@ -74,6 +62,7 @@ const modules = [
             preloadingStrategy: PreloadAllModules,
         }),
         BaseModule,
+        KeyBindingsModule,
         HttpClientModule,
         ...modules,
     ],
@@ -82,7 +71,6 @@ const modules = [
         { provide: TranslationsLoaderService, useClass: AppTranslationsLoaderService },
         { provide: LocaleService, useClass: AppLocaleService },
         { provide: USER_CONFIGURATION_STORE, useClass: RendererConfigurationStore },
-        { provide: DEFAULT_USER_CONFIGURATION, useValue: DEFAULT_BE_USER_CONFIGURATION },
         { provide: ErrorHandler, useClass: BatchExplorerErrorHandler },
         { provide: USER_SERVICE, useExisting: AdalService },
     ],

@@ -1,7 +1,8 @@
 import { HttpParams } from "@angular/common/http";
 import { Injectable, OnDestroy } from "@angular/core";
+import { ServerError } from "@batch-flask/core";
 import { SanitizedError, log } from "@batch-flask/utils";
-import { ArmBatchAccount, Subscription } from "app/models";
+import { ArmBatchAccount, ArmSubscription } from "app/models";
 import { AccountPatchDto } from "app/models/dtos";
 import { ArmResourceUtils } from "app/utils";
 import { Constants } from "common";
@@ -60,6 +61,13 @@ export class ArmBatchAccountService implements OnDestroy {
         }
         return this.subscriptionService.get(subscriptionId).pipe(
             flatMap((subscription) => {
+                if (!subscription) {
+                    throw new ServerError({
+                        status: 404,
+                        code: "SubscriptionNotFound",
+                        message: `Subscription ${subscriptionId} is not found. You might not have permission anymore.`,
+                    });
+                }
                 return this.azure.get(subscription, id).pipe(
                     map(response => this._createAccount(subscription, response)),
                 );
@@ -76,12 +84,12 @@ export class ArmBatchAccountService implements OnDestroy {
         );
     }
 
-    public putResourcGroup(sub: Subscription, resourceGroup: string, body: any) {
+    public putResourcGroup(sub: ArmSubscription, resourceGroup: string, body: any) {
         const rgUri = this.getResoureGroupId(sub, resourceGroup);
         return this.azure.put(sub, rgUri, { body: body });
     }
 
-    public create(sub: Subscription, resourceGroup: string, accountName: string, body: any): Observable<any> {
+    public create(sub: ArmSubscription, resourceGroup: string, accountName: string, body: any): Observable<any> {
         const accountUri = this.getAccountId(sub, resourceGroup, accountName);
         return this.azure.put(sub, accountUri, { body: body });
     }
@@ -94,12 +102,12 @@ export class ArmBatchAccountService implements OnDestroy {
         );
     }
 
-    public getAccountId(sub: Subscription, resourceGroup: string, accountName: string): string {
+    public getAccountId(sub: ArmSubscription, resourceGroup: string, accountName: string): string {
         const uriPrefix = this.getResoureGroupId(sub, resourceGroup);
         return `${uriPrefix}/providers/${batchProvider}/batchAccounts/${accountName}`;
     }
 
-    public getResoureGroupId(sub: Subscription, resourceGroup: string): string {
+    public getResoureGroupId(sub: ArmSubscription, resourceGroup: string): string {
         return `subscriptions/${sub.subscriptionId}/resourceGroups/${resourceGroup}`;
     }
 
@@ -107,7 +115,11 @@ export class ArmBatchAccountService implements OnDestroy {
      * Call nameAvailability api to get account conflict info per location
      * @param subscriptionId
      */
-    public nameAvailable(name: string, subscription: Subscription, location: string): Observable<AvailabilityResult> {
+    public nameAvailable(
+        name: string,
+        subscription: ArmSubscription,
+        location: string,
+    ): Observable<AvailabilityResult> {
         if (!name || !subscription || !location) {
             return of(null);
         }
@@ -124,7 +136,7 @@ export class ArmBatchAccountService implements OnDestroy {
      * @param subscription
      * @param location
      */
-    public accountQuota(subscription: Subscription, location: string): Observable<QuotaResult> {
+    public accountQuota(subscription: ArmSubscription, location: string): Observable<QuotaResult> {
         if (!subscription || !location) {
             return of(null);
         }
@@ -209,7 +221,7 @@ export class ArmBatchAccountService implements OnDestroy {
         return obs;
     }
 
-    private _createAccount(subscription: Subscription, data: any): ArmBatchAccount {
+    private _createAccount(subscription: ArmSubscription, data: any): ArmBatchAccount {
         return new ArmBatchAccount({ ...data, subscription });
     }
 

@@ -1,11 +1,11 @@
 import { NgModule } from "@angular/core";
-
 import { BaseModule } from "@batch-flask/ui";
 import { commonModules } from "app/common";
+import { ResourceFilesPropertiesModule } from "app/components/common";
 import { JobActionModule } from "app/components/job/action";
 import { JobDetailsModule } from "app/components/job/details";
 import { PoolDetailsModule } from "app/components/pool/details";
-import { JobScheduleAutoPoolComponent } from "./job-schedule-autopool.component";
+import { JobScheduleAutoPoolComponent } from "./autopool";
 import { JobScheduleConfigurationComponent } from "./job-schedule-configuration.component";
 import { JobScheduleDefaultComponent } from "./job-schedule-default.component";
 import { JobScheduleDetailsComponent } from "./job-schedule-details.component";
@@ -30,6 +30,7 @@ const modules = [
     declarations: components,
     exports: components,
     imports: [
+        ResourceFilesPropertiesModule,
         ...commonModules,
         ...modules,
     ],

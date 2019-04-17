@@ -10,20 +10,21 @@ import {
     ViewChild,
 } from "@angular/core";
 import { Router } from "@angular/router";
-import { ListKeyNavigator, ListView } from "@batch-flask/core";
+import { ContextService, ListKeyNavigator, ListView } from "@batch-flask/core";
 import { KeyCode } from "@batch-flask/core/keys";
 import { ListSelection, SelectableList } from "@batch-flask/core/list";
-import { ListDataPresenter } from "@batch-flask/ui/abstract-list/list-data-presenter";
+import { ListDataPresenter, SortingInfo } from "@batch-flask/ui/abstract-list/list-data-presenter";
 import { BreadcrumbService } from "@batch-flask/ui/breadcrumbs";
 import {
     ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuService, MultiContextMenuItem,
 } from "@batch-flask/ui/context-menu";
 import { EntityCommands } from "@batch-flask/ui/entity-commands";
 import { LoadingStatus } from "@batch-flask/ui/loading";
-import { SanitizedError } from "@batch-flask/utils";
+import { log } from "@batch-flask/utils";
 import { List } from "immutable";
 import * as inflection from "inflection";
 import { Subscription, of } from "rxjs";
+import { skip } from "rxjs/operators";
 import { VirtualScrollComponent } from "../virtual-scroll";
 import { AbstractListItem } from "./abstract-list-item";
 import { ListDataProvider } from "./list-data-provider";
@@ -31,10 +32,16 @@ import { ListSortConfig, SortDirection, SortingStatus } from "./list-data-sorter
 
 export interface AbstractListBaseConfig<TEntity = any> {
     /**
-     * If it should allow the user to activate an item(And the routerlink if applicable)
+     * If it should allow the user to activate an item
      * @default true
      */
     activable?: boolean;
+
+    /**
+     * If it should allow the user to navigate. Need activable true
+     * @default true
+     */
+    navigable?: boolean;
 
     /**
      * What is the buffer for trigerring scroll to the bottom event
@@ -51,14 +58,23 @@ export interface AbstractListBaseConfig<TEntity = any> {
      * Sorting definition. Specify here what column can be sorted and how
      */
     sorting?: ListSortConfig<TEntity> | null | false;
+
+    /**
+     * Id used to preserve settings for the list(Last sort)
+     */
+    id?: string;
 }
 
 export const abstractListDefaultConfig: Required<AbstractListBaseConfig> = {
     activable: true,
+    navigable: true,
     scrollBottomBuffer: 0,
     forceBreadcrumb: false,
     sorting: null,
+    id: undefined,
 };
+
+const lastSorting: StringMap<SortingInfo> = {};
 
 /**
  * Base class for quick-list and table component
@@ -102,6 +118,13 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
     @Input() public set config(config: AbstractListBaseConfig) {
         this._config = { ...abstractListDefaultConfig, ...config };
         this.dataPresenter.config = this._config.sorting;
+
+        if (this._config.id) {
+            const lastSortingKey = lastSorting[this._config.id];
+            if (lastSortingKey) {
+                this.dataPresenter.sortBy(lastSortingKey.key, lastSortingKey.direction);
+            }
+        }
     }
     public get config() { return this._config; }
 
@@ -148,6 +171,7 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
         private router: Router,
         private breadcrumbService: BreadcrumbService,
         private elementRef: ElementRef,
+        private contextService: ContextService,
         changeDetection: ChangeDetectorRef) {
         super(changeDetection);
         this._initKeyNavigator();
@@ -168,6 +192,11 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
         this.dataPresenter.sortingStatus.subscribe((sortingStatus) => {
             this.sortingStatus = sortingStatus;
             this.changeDetector.markForCheck();
+        });
+        this.dataPresenter.sortingByObs.pipe(skip(1)).subscribe((sortBy) => {
+            if (this._config.id) {
+                lastSorting[this._config.id] = sortBy;
+            }
         });
 
     }
@@ -294,6 +323,7 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
         if (!this._clicking) {
             this._pickFocusedItem();
         }
+        this.contextService.setContext("list.focused", this);
         this.changeDetector.markForCheck();
     }
 
@@ -307,6 +337,7 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
     @HostListener("blur", ["$event"])
     public handleBlur(_: FocusEvent) {
         this.listFocused = false;
+        this.contextService.removeContext("list.focused");
         this._keyNavigator.focusColumn(-1);
         this.changeDetector.markForCheck();
     }
@@ -322,8 +353,29 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
             this.activateItem(this.focusedItem);
             event.preventDefault();
         } else {
+            let previousFocussedId = null;
+            if (event.shiftKey) {
+                const focusedItem = this._keyNavigator.focusedItem;
+                previousFocussedId = focusedItem && focusedItem.id;
+            }
+            // Handle the navigation
             this._keyNavigator.onKeydown(event);
+
+            const focusedItem = this._keyNavigator.focusedItem;
+            const focussedId = focusedItem && focusedItem.id;
+
+            if (previousFocussedId && previousFocussedId !== focussedId) {
+                if (!focussedId) { return; }
+                if (this.selection.has(focussedId)) {
+                    this.selection.delete(previousFocussedId);
+                } else {
+                    this.selection.add(focussedId);
+                }
+            } else if (event.code === KeyCode.ArrowDown || event.code === KeyCode.ArrowUp) {
+                this.selection = new ListSelection({ keys: [focussedId] });
+            }
         }
+        this.changeDetector.markForCheck();
     }
 
     public handleClick(event: MouseEvent, item, activate = true) {
@@ -339,7 +391,7 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
             if (shiftKey) {
                 this.selectTo(item.id);
             } else if (ctrlKey) {
-                this.onSelectedChange(item.id, !this.selection.has(item.id));
+                this.toggleSelected(item.id);
             }
             event.stopPropagation();
             event.stopImmediatePropagation();
@@ -363,16 +415,17 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
 
     public activateItem(item: AbstractListItem | null) {
         this.activeItem = item && item.id;
+
         if (!item) { return; }
         const link = item.routerLink;
-        if (link) {
+        if (this.config.navigable && link) {
             if (this.config.forceBreadcrumb) {
                 this.breadcrumbService.navigate(link);
             } else {
                 try {
                     this.router.navigate(link);
                 } catch (e) {
-                    throw new SanitizedError(e.toString());
+                    log.error(`Failed to navigate to link ${link}`, e.toString());
                 }
             }
         }
@@ -380,7 +433,6 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
 
     public openContextMenu(target?: any) {
         if (!this.commands && !this.config.sorting) { return; }
-
         let selection = this.selection;
 
         // If we right clicked on an non selected item it will just make this the context menu selection
@@ -406,6 +458,10 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
 
             this.contextmenuService.openMenu(menu);
         });
+    }
+
+    public selectAll() {
+        this.selection = new ListSelection({ keys: this.items.map(x => x.id) });
     }
 
     private _pickFocusedItem() {
@@ -466,6 +522,14 @@ export class AbstractListBase extends SelectableList implements OnDestroy {
         return new MultiContextMenuItem({
             label: "Sort by",
             subitems: [
+                new ContextMenuItem({
+                    label: "Default",
+                    click: () => {
+                        this.dataPresenter.sortBy(null);
+                    },
+                    checked: this.dataPresenter.sortingBy.key === null,
+                    type: "checkbox",
+                }),
                 ...sortOptions,
                 new ContextMenuSeparator(),
                 ...sortDirections,

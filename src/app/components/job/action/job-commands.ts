@@ -8,10 +8,9 @@ import { SidebarManager } from "@batch-flask/ui/sidebar";
 import { Job, JobSchedule, JobState } from "app/models";
 import { JobService, PinnedEntityService } from "app/services";
 import { from } from "rxjs";
-
 import { JobScheduleCreateBasicDialogComponent } from "../../job-schedule/action";
 import { AddTaskFormComponent } from "../../task/action";
-import { JobCreateBasicDialogComponent, PatchJobComponent } from "./add";
+import { AddJobFormComponent, PatchJobComponent } from "./add";
 import { DisableJobCommand } from "./disable";
 import { TerminateJobCommand } from "./terminate";
 
@@ -172,7 +171,7 @@ export class JobCommands extends EntityCommands<Job> {
     }
 
     private _cloneJob(job: Job) {
-        const ref = this.sidebarManager.open(`add-job-${job.id}`, JobCreateBasicDialogComponent);
+        const ref = this.sidebarManager.open(`add-job-${job.id}`, AddJobFormComponent);
         ref.component.setValueFromEntity(job);
     }
 

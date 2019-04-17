@@ -94,13 +94,15 @@ export const localStorageKey = {
      * Save a randomly generated machine id
      */
     machineId: "machine_id",
+
+    nodeConnectLastSSHPublicKey: "node-connect.last-ssh-public-key",
 };
 
 export const ApiVersion = {
     arm: "2016-09-01",
     armClassicStorage: "2016-11-01",
     armStorage: "2016-12-01",
-    armBatch: "2017-05-01",
+    armBatch: "2018-12-01",
     compute: "2017-03-30",
     commerce: "2016-08-31-preview",
     authorization: "2017-05-01",
@@ -110,6 +112,7 @@ export const ApiVersion = {
     classicNetwork: "2015-12-01",
     consumption: "2018-10-01",
     batchService: "2018-12-01.8.0",
+    costManagement: "2019-01-01",
 };
 
 export const ExternalLinks = {
@@ -119,6 +122,7 @@ export const ExternalLinks = {
     privacyStatement: "https://privacy.microsoft.com/en-us/privacystatement",
     submitIssue: "https://github.com/Azure/BatchExplorer/issues",
     subscriptionUrl: "https://portal.azure.com/#resource/subscriptions/{0}/overview",
+    costManagementUrl: "https://ms.portal.azure.com/#resource/subscriptions/{0}/costByResource",
     resourceGroupUrl: "https://portal.azure.com/#resource/subscriptions/{0}/resourceGroups/{1}/overview",
 };
 

@@ -5,14 +5,12 @@ import { By } from "@angular/platform-browser";
 import { NoopAnimationsModule } from "@angular/platform-browser/animations";
 import { ActivatedRoute, Router } from "@angular/router";
 import { RouterTestingModule } from "@angular/router/testing";
-import { List } from "immutable";
-import { BehaviorSubject, Subject, of } from "rxjs";
-
 import { MaterialModule, UserConfigurationService } from "@batch-flask/core";
+import { I18nTestingModule, MockUserConfigurationService } from "@batch-flask/core/testing";
+import { I18nUIModule, SelectModule } from "@batch-flask/ui";
 import { DialogService } from "@batch-flask/ui/dialogs";
 import { NotificationService } from "@batch-flask/ui/notifications";
 import { SidebarManager } from "@batch-flask/ui/sidebar";
-
 import { FileGroupPickerComponent } from "app/components/data/shared";
 import { CloudFilePickerComponent } from "app/components/data/shared/cloud-file-picker";
 import { FileGroupSasComponent } from "app/components/data/shared/file-group-sas";
@@ -26,11 +24,11 @@ import {
     PoolService,
     VmSizeService,
 } from "app/services";
+import { RenderingContainerImageService } from "app/services/rendering-container-image";
 import { AutoStorageService, StorageBlobService, StorageContainerService } from "app/services/storage";
 import { Constants } from "common";
-
-import { I18nTestingModule, MockUserConfigurationService } from "@batch-flask/core/testing";
-import { I18nUIModule, SelectModule } from "@batch-flask/ui";
+import { List } from "immutable";
+import { BehaviorSubject, Subject, of } from "rxjs";
 import * as Fixtures from "test/fixture";
 import { MockListView } from "test/utils/mocks";
 import { NoItemMockComponent } from "test/utils/mocks/components";
@@ -116,6 +114,7 @@ describe("SubmitNcjTemplateComponent", () => {
     let fileGroupServiceSpy;
     let poolOsServiceSpy;
     let settingsServiceSpy: MockUserConfigurationService;
+    let renderingContainerImageServiceSpy;
 
     const blendFile = "myscene.blend";
     let queryParameters;
@@ -138,7 +137,8 @@ describe("SubmitNcjTemplateComponent", () => {
         };
 
         poolServiceSpy = {
-            listView: () => listProxy,
+            pools: of(List([])),
+            listView: listProxy,
         };
 
         vmSizeServiceSpy = {
@@ -207,6 +207,11 @@ describe("SubmitNcjTemplateComponent", () => {
             },
         });
 
+        renderingContainerImageServiceSpy = {
+            containerImagesAsMap: jasmine.createSpy("containerImagesAsMap").and.returnValue(of(
+               new Map())),
+        };
+
         TestBed.configureTestingModule({
             imports: [
                 RouterTestingModule,
@@ -238,6 +243,7 @@ describe("SubmitNcjTemplateComponent", () => {
                 { provide: NotificationService, useValue: notificationServiceSpy },
                 { provide: PoolOsService, useValue: poolOsServiceSpy },
                 { provide: UserConfigurationService, useValue: settingsServiceSpy },
+                { provide: RenderingContainerImageService, useValue: renderingContainerImageServiceSpy },
             ],
 
             schemas: [NO_ERRORS_SCHEMA],

@@ -1,9 +1,8 @@
-import { List } from "immutable";
-
 import { ListProp, Model, Prop, Record } from "@batch-flask/core";
 import { CertificateReference } from "app/models/certificate-reference";
 import { NodeRecentTask } from "app/models/node-recent-task";
 import { StartTaskInfo } from "app/models/start-task-info";
+import { List } from "immutable";
 import { StartTask, StartTaskAttributes } from "../../start-task";
 import {
     ComputeNodeEndpointConfiguration, ComputeNodeEndpointConfigurationAttributes,
@@ -34,7 +33,6 @@ export interface NodeAttributes {
     errors: ComputeNodeErrorAttributes[];
     nodeAgentInfo: NodeAgentInformationAttributes;
     endpointConfiguration: ComputeNodeEndpointConfigurationAttributes;
-
 }
 
 /**
@@ -68,6 +66,10 @@ export class Node extends Record<NodeAttributes> {
 
     public get routerLink() {
         return ["/pools", this.poolId, "nodes", this.id];
+    }
+
+    public get name() {
+        return this.id;
     }
 }
 

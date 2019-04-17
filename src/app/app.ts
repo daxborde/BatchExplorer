@@ -1,3 +1,4 @@
+// tslint:disable: ordered-imports
 import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
 import { ipcRenderer, remote } from "electron";
 
@@ -15,6 +16,8 @@ import "hammerjs";
 import "font-awesome/css/font-awesome.min.css";
 import "./environment";
 import "./styles/main.scss";
+
+import "app/commands";
 
 interface LoadingTimeResults {
     startup: number;

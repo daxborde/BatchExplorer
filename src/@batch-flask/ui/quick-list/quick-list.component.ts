@@ -9,7 +9,9 @@ import {
     TemplateRef,
     forwardRef,
 } from "@angular/core";
-
+import { Router } from "@angular/router";
+import { ContextService } from "@batch-flask/core";
+import { BreadcrumbService } from "@batch-flask/ui/breadcrumbs";
 import { ContextMenuService } from "@batch-flask/ui/context-menu";
 import { AbstractListBase } from "../abstract-list";
 import {
@@ -18,9 +20,6 @@ import {
     QuickListRowStatusDirective,
     QuickListRowTitleDirective,
 } from "./quick-list-row-def";
-
-import { Router } from "@angular/router";
-import { BreadcrumbService } from "@batch-flask/ui/breadcrumbs";
 
 import "./quick-list.scss";
 
@@ -49,7 +48,8 @@ export class QuickListComponent extends AbstractListBase {
         router: Router,
         elementRef: ElementRef,
         breadcrumbService: BreadcrumbService,
+        contextService: ContextService,
         changeDetector: ChangeDetectorRef) {
-        super(contextMenuService, router, breadcrumbService, elementRef, changeDetector);
+        super(contextMenuService, router, breadcrumbService, elementRef, contextService, changeDetector);
     }
 }

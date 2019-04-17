@@ -1,13 +1,17 @@
 import { AccessToken, InMemoryDataStore } from "@batch-flask/core";
+import { AzureEnvironment } from "@batch-flask/core/azure-environment";
 import { Constants } from "common";
 import { DateTime } from "luxon";
-import { F } from "test/utils";
+import * as proxyquire from "proxyquire";
+import { of } from "rxjs";
 import { MockBrowserWindow, MockSplashScreen } from "test/utils/mocks/windows";
 import { AADUser } from "./aad-user";
 import { AADService } from "./aad.service";
 
+const mock = proxyquire.noCallThru();
+
 const tenant1 = "tenant1";
-const resource1 = "http://example.com";
+const resource1 = "batch";
 
 const sampleUser: AADUser = {
     aud: "94ef904d-c21a-4972-9244-b4d6a12b8e13",
@@ -36,6 +40,8 @@ describe("AADService", () => {
     let localStorage: InMemoryDataStore;
     let ipcMainMock;
     let propertiesSpy;
+    let telemetryManagerSpy;
+    let dialogSpy;
 
     beforeEach(() => {
         localStorage = new InMemoryDataStore();
@@ -49,15 +55,32 @@ describe("AADService", () => {
         };
 
         propertiesSpy = {
-
+            azureEnvironment: AzureEnvironment.Azure,
         };
-        service = new AADService(appSpy, localStorage, propertiesSpy, localStorage as any, ipcMainMock);
+        telemetryManagerSpy = {
+            enableTelemetry: jasmine.createSpy("enableTelemetry"),
+            disableTelemetry: jasmine.createSpy("disableTelemetry"),
+        };
+
+        dialogSpy = {
+            showMessageBox: jasmine.createSpy("showMessageBox").and.returnValue(0),
+        };
+
+        const mockAADService = mock("./aad.service", {
+            electron: {
+                dialog: dialogSpy,
+            },
+        });
+
+        service = new mockAADService.AADService(
+            appSpy, localStorage, propertiesSpy, telemetryManagerSpy, localStorage as any, ipcMainMock);
         service.init();
     });
 
     it("when there is no item in the localstorage it should not set the id_token", () => {
         localStorage.removeItem(Constants.localStorageKey.currentUser);
-        const tmpService = new AADService(appSpy, localStorage, propertiesSpy, localStorage as any, ipcMainMock);
+        const tmpService = new AADService(
+            appSpy, localStorage, propertiesSpy, telemetryManagerSpy, localStorage as any, ipcMainMock);
         tmpService.init();
         let user: AADUser | null = null;
         tmpService.currentUser.subscribe(x => user = x);
@@ -66,7 +89,8 @@ describe("AADService", () => {
 
     it("when localstorage has currentUser it should load it", async (done) => {
         await localStorage.setItem(Constants.localStorageKey.currentUser, JSON.stringify(sampleUser));
-        const tmpService = new AADService(appSpy, localStorage, propertiesSpy, localStorage as any, ipcMainMock);
+        const tmpService = new AADService(
+            appSpy, localStorage, propertiesSpy, telemetryManagerSpy, localStorage as any, ipcMainMock);
         await tmpService.init();
         let user: AADUser | null = null;
         tmpService.currentUser.subscribe(x => user = x);
@@ -107,7 +131,7 @@ describe("AADService", () => {
             (service as any)._userDecoder.decode = decodeSpy;
         });
 
-        it("should use the cached token if not expired", F(async () => {
+        it("should use the cached token if not expired", async () => {
             (service as any)._tokenCache.storeToken(tenant1, resource1, new AccessToken({
                 access_token: "initialtoken",
                 expires_on: DateTime.local().plus({ hours: 1 }),
@@ -115,9 +139,9 @@ describe("AADService", () => {
             token = await service.accessTokenData(tenant1, resource1);
             expect(token).not.toBeNull();
             expect(token.access_token).toEqual("initialtoken");
-        }));
+        });
 
-        it("should reload a new token if the token is expiring before the safe margin", F(async () => {
+        it("should reload a new token if the token is expiring before the safe margin", async () => {
             (service as any)._tokenCache.storeToken(tenant1, resource1, new AccessToken({
                 access_token: "initialtoken",
                 expires_on: DateTime.local().plus({ minutes: 1 }).toJSDate(),
@@ -130,16 +154,16 @@ describe("AADService", () => {
 
             expect(token).not.toBeNull();
             expect(token.access_token).toEqual("refreshedToken");
-        }));
+        });
 
         it("should load a new token if getting a token for another resource", async (done) => {
             (service as any)._tokenCache.storeToken(tenant1, resource1, new AccessToken({
                 access_token: "initialtoken",
                 expires_on: DateTime.local().plus({ hours: 1 }),
             } as any));
-            token = await service.accessTokenData(tenant1, "http://other-resource.com");
+            token = await service.accessTokenData(tenant1, "appInsights");
             expect(redeemSpy).toHaveBeenCalled();
-            expect(redeemSpy).toHaveBeenCalledWith("http://other-resource.com", tenant1, "somecode");
+            expect(redeemSpy).toHaveBeenCalledWith("appInsights", tenant1, "somecode");
             expect(refreshSpy).not.toHaveBeenCalled();
 
             expect(token).not.toBeNull();
@@ -187,6 +211,23 @@ describe("AADService", () => {
                 expect(token.access_token).toEqual("newToken");
             });
         });
+    });
 
+    describe("Login", () => {
+        beforeEach(() => {
+            spyOn(service, "accessTokenData").and.returnValue(of({}));
+        });
+
+        it("login to public cloud", async () => {
+            await service.login().done;
+            expect(dialogSpy.showMessageBox).not.toHaveBeenCalled();
+        });
+
+        it("login to national cloud", async () => {
+            propertiesSpy.azureEnvironment = AzureEnvironment.AzureChina;
+            await service.login().done;
+            expect(dialogSpy.showMessageBox).toHaveBeenCalledTimes(1);
+            expect(dialogSpy.showMessageBox).toHaveBeenCalled();
+        });
     });
 });

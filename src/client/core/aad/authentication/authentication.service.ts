@@ -1,8 +1,7 @@
-import { BehaviorSubject, Observable } from "rxjs";
-
 import { SanitizedError, SecureUtils } from "@batch-flask/utils";
 import { BatchExplorerApplication } from "client/core/batch-explorer-application";
 import { Deferred } from "common";
+import { BehaviorSubject, Observable } from "rxjs";
 import { AADConfig } from "../aad-config";
 import * as AdalConstants from "../adal-constants";
 
@@ -156,7 +155,7 @@ export class AuthenticationService {
             scope: "user_impersonation+openid",
             nonce: SecureUtils.uuid(),
             state: SecureUtils.uuid(),
-            resource: this.app.properties.azureEnvironment.armUrl,
+            resource: this.app.properties.azureEnvironment.arm,
         };
 
         if (silent) {

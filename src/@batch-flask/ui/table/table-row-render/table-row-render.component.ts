@@ -13,7 +13,6 @@ import {
     forwardRef,
 } from "@angular/core";
 import { Subscription } from "rxjs";
-
 import { TableColumnRef } from "../table-column-manager";
 import { TableComponent, TableConfig } from "../table.component";
 
@@ -23,7 +22,8 @@ import { TableComponent, TableConfig } from "../table.component";
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TableRowRenderComponent implements OnInit, OnChanges, OnDestroy {
-    @Input() @HostBinding("attr.id") public id: string;
+    // tslint:disable-next-line:no-input-rename
+    @Input("id") @HostBinding("attr.id") public idAttr: string;
     @Input() public item: any;
     @Input() public columns: TableColumnRef[];
     @Input() public tableConfig: TableConfig;
@@ -86,9 +86,9 @@ export class TableRowRenderComponent implements OnInit, OnChanges, OnDestroy {
         this.table.openContextMenu(this);
     }
 
-    // public get id() {
-    //     return this.item.id;
-    // }
+    public get id() {
+        return this.item.id;
+    }
 
     public trackColumn(index: number, column: TableColumnRef) {
         return column.name;

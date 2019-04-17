@@ -1,29 +1,26 @@
 import { Component, HostBinding, OnDestroy, OnInit } from "@angular/core";
 import { MatIconRegistry } from "@angular/material";
 import { DomSanitizer } from "@angular/platform-browser";
-import { Subject, combineLatest } from "rxjs";
-
 import { ActivatedRoute } from "@angular/router";
-import { TelemetryService, UserConfigurationService } from "@batch-flask/core";
+import { KeyBindingsService, TelemetryService, UserConfigurationService } from "@batch-flask/core";
 import { ElectronRemote, IpcService } from "@batch-flask/electron";
 import { Workspace, WorkspaceService } from "@batch-flask/ui";
 import { PermissionService } from "@batch-flask/ui/permission";
 import { registerIcons } from "app/config";
 import {
     AuthorizationHttpService,
-    BEUserConfiguration,
     BatchAccountService,
-    CommandService,
     NavigatorService,
     NcjTemplateService,
-    PoolOsService,
     PredefinedFormulaService,
     PricingService,
     PythonRpcService,
     SubscriptionService,
     ThemeService,
 } from "app/services";
-import { filter, first, takeUntil } from "rxjs/operators";
+import { BEUserConfiguration } from "common";
+import { Subject, combineLatest } from "rxjs";
+import { takeUntil } from "rxjs/operators";
 
 @Component({
     selector: "bl-app",
@@ -41,11 +38,9 @@ export class AppComponent implements OnInit, OnDestroy {
     constructor(
         matIconRegistry: MatIconRegistry,
         sanitizer: DomSanitizer,
-        private commandService: CommandService,
         private accountService: BatchAccountService,
         private navigatorService: NavigatorService,
         private subscriptionService: SubscriptionService,
-        private poolOsService: PoolOsService,
         userConfigurationService: UserConfigurationService<BEUserConfiguration>,
         remote: ElectronRemote,
         pythonRpcService: PythonRpcService,
@@ -54,6 +49,7 @@ export class AppComponent implements OnInit, OnDestroy {
         permissionService: PermissionService,
         authHttpService: AuthorizationHttpService,
         ipc: IpcService,
+        keybindingService: KeyBindingsService,
         private telemetryService: TelemetryService,
         private pricingService: PricingService,
         private ncjTemplateService: NcjTemplateService,
@@ -62,8 +58,8 @@ export class AppComponent implements OnInit, OnDestroy {
     ) {
         this.telemetryService.init(remote.getCurrentWindow().TELEMETRY_ENABLED);
         this._initWorkspaces();
-        this.commandService.init();
         this.pricingService.init();
+        keybindingService.listen();
         this.navigatorService.init();
         this.accountService.loadInitialData();
         this.ncjTemplateService.init();
@@ -76,15 +72,6 @@ export class AppComponent implements OnInit, OnDestroy {
             workspaceService.haveWorkspacesLoaded,
         ).pipe(takeUntil(this._destroy)).subscribe((loadedArray) => {
             this.isAppReady = loadedArray[0] && loadedArray[1];
-        });
-
-        // Wait for the first account to be loaded.
-        accountService.currentAccount.pipe(
-            takeUntil(this._destroy),
-            filter(x => Boolean(x)),
-            first(),
-        ).subscribe((x) => {
-            this._preloadData();
         });
 
         registerIcons(matIconRegistry, sanitizer);
@@ -112,13 +99,6 @@ export class AppComponent implements OnInit, OnDestroy {
     public ngOnDestroy() {
         this._destroy.next();
         this._destroy.complete();
-    }
-
-    /**
-     * Preload some data needed.
-     */
-    private _preloadData() {
-        this.poolOsService.refresh();
     }
 
     private async _initWorkspaces() {

@@ -34,6 +34,8 @@ export class ProfileButtonComponent implements OnDestroy, OnInit {
     public currentUserName: string = "";
     public updateStatus: UpdateStatus;
 
+    public downloadProgress: number;
+
     private _destroy = new Subject();
 
     constructor(
@@ -64,6 +66,14 @@ export class ProfileButtonComponent implements OnDestroy, OnInit {
             this.updateStatus = status;
             this.changeDetector.markForCheck();
         });
+        this.autoUpdateService.downloadProgress.pipe(takeUntil(this._destroy)).subscribe((progress) => {
+            if (progress) {
+                this.downloadProgress = progress.percent;
+            } else {
+                this.downloadProgress = 0;
+            }
+            this.changeDetector.markForCheck();
+        });
     }
 
     public ngOnInit() {
@@ -79,6 +89,9 @@ export class ProfileButtonComponent implements OnDestroy, OnInit {
         const items = [
             new ContextMenuSeparator(),
             new ContextMenuItem({ label: this.i18n.t("profile-button.settings"), click: () => this._goToSettings() }),
+            new ContextMenuItem({
+                label: this.i18n.t("profile-button.keybindings"), click: () => this._goToKeyBindings(),
+            }),
             new MultiContextMenuItem({
                 label: "Language (Preview)", subitems: Object.entries(TranslatedLocales).map(([key, value]) => {
                     return new ContextMenuItem({ label: value, click: () => this._changeLanguage(key as Locale) });
@@ -106,6 +119,10 @@ export class ProfileButtonComponent implements OnDestroy, OnInit {
 
     private _goToSettings() {
         this.router.navigate(["/settings"]);
+    }
+
+    private _goToKeyBindings() {
+        this.router.navigate(["/keybindings"]);
     }
 
     private _changeLanguage(locale: Locale) {

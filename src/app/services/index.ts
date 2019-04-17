@@ -1,13 +1,14 @@
 export * from "./azure-batch";
+export * from "./arm-location";
+export * from "./arm-provider";
 export * from "./batch-account";
 export * from "./app-translation-loader.service";
 export * from "./app-locale.service";
 export * from "./authorization-http";
-export * from "./application.service";
-export * from "./app-insights";
 export * from "./autoscale-formula.service";
 export * from "./azure-http.service";
 export * from "./arm-http.service";
+export * from "./app-insights";
 export * from "./batch-explorer.service";
 export * from "./cache-data.service";
 export * from "./compute.service";
@@ -22,6 +23,7 @@ export * from "./ncj-submit.service";
 export * from "./ncj/ncj-template.service";
 export * from "./pricing.service";
 export * from "./quota.service";
+export * from "./rendering-container-image";
 export * from "./resource-access";
 export * from "./ssh-key.service";
 export * from "./subscription";
@@ -36,6 +38,3 @@ export * from "./tenant-details.service";
 export * from "./network";
 export * from "./user-configuration";
 export * from "./version";
-
-// This needs to be last(as it does dynamic inject which problably have dependencies on above services)
-export * from "./command-service";

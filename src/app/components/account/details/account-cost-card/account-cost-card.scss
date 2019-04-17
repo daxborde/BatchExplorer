@@ -4,6 +4,7 @@ bl-account-cost-card {
     margin-top: 5px;
     margin-right: 5px;
     display: block;
+    position: relative;
     background: $card-background;
 
     header {
@@ -14,7 +15,6 @@ bl-account-cost-card {
 
         > h2 {
             display: inline-block;
-            flex: 1;
         }
 
         .subtitle {
@@ -36,5 +36,11 @@ bl-account-cost-card {
 
     .total {
         text-align: center;
+    }
+
+    .more-on-portal {
+        position: absolute;
+        right: 5px;
+        bottom: 5px;
     }
 }

@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy } from "@angular/core";
 import { FormBuilder, FormGroup } from "@angular/forms";
 import { EntityConfigurationView, UserConfigurationService } from "@batch-flask/core";
-import { BEUserDesktopConfiguration, DEFAULT_BE_USER_CONFIGURATION } from "app/services";
+import { BEUserDesktopConfiguration, DEFAULT_BE_USER_CONFIGURATION } from "common";
 import { Subject } from "rxjs";
 import { debounceTime, takeUntil } from "rxjs/operators";
+
 import "./settings.scss";
 
 export interface SettingsSelection {
@@ -16,9 +17,13 @@ export interface SettingsSelection {
     updateOnQuit: boolean;
     githubDataRepo: string;
     githubDataBranch: string;
+    microsoftPortfolioRepo: string;
+    microsoftPortfolioBranch: string;
+    microsoftPortfolioPath: string;
     defaultOutputFileGroup: string;
     theme: string;
 }
+
 @Component({
     selector: "bl-settings",
     templateUrl: "settings.html",
@@ -51,6 +56,9 @@ export class SettingsComponent implements OnDestroy {
             updateOnQuit: [true],
             githubDataRepo: [""],
             githubDataBranch: [""],
+            microsoftPortfolioRepo: [""],
+            microsoftPortfolioBranch: [""],
+            microsoftPortfolioPath: [""],
             defaultOutputFileGroup: [""],
         });
 
@@ -69,6 +77,9 @@ export class SettingsComponent implements OnDestroy {
                 updateOnQuit: config.update.updateOnQuit,
                 githubDataRepo: config.githubData.repo,
                 githubDataBranch: config.githubData.branch,
+                microsoftPortfolioRepo: config.microsoftPortfolio.repo,
+                microsoftPortfolioBranch: config.microsoftPortfolio.branch,
+                microsoftPortfolioPath: config.microsoftPortfolio.path,
                 defaultOutputFileGroup: config.jobTemplate.defaultOutputFileGroup,
             };
             this._lastValue = JSON.stringify(selection);
@@ -123,6 +134,11 @@ export class SettingsComponent implements OnDestroy {
             githubData: {
                 repo: selection.githubDataRepo,
                 branch: selection.githubDataBranch,
+            },
+            microsoftPortfolio: {
+                repo: selection.microsoftPortfolioRepo,
+                branch: selection.microsoftPortfolioBranch,
+                path: selection.microsoftPortfolioPath,
             },
             jobTemplate: {
                 defaultOutputFileGroup: selection.defaultOutputFileGroup,
